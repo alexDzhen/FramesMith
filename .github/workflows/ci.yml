@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFRAMESMITH_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Build a sample frame (Linux)
+        if: runner.os == 'Linux'
+        run: ./build/framesmith --dst broadcast --type arp --payload "00 01 08 00"
+
+      - name: Build a sample frame (Windows)
+        if: runner.os == 'Windows'
+        run: .\build\Release\framesmith.exe --dst broadcast --type arp --payload "00 01 08 00"
